@@ -3,24 +3,33 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Supervisório Duplex</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#20252b">
+<meta name="theme-color" content="#10141f">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
 /* Layout geral e reset básico */
 *{box-sizing:border-box}
-body{margin:0;background:#20252b;color:#fff;font:12px Arial;text-align:center}
+body{margin:0;background:#10141f;color:#fff;font:12px Arial;text-align:center}
 h2{text-align:left;margin:8px 15px}
 .box{display:flex;gap:6px;justify-content:center;align-items:flex-start}
+#telaElevadores{width:100%;height:calc(100vh - 68px);display:flex;align-items:flex-start;justify-content:center;overflow:hidden}
+#telaElevadores .box{transform-origin:top center}
+
+/* Cabeçalho com o nome do app */
+.topo{background:#141a2e;padding:20px 16px;border-bottom:1px solid #232a44}
+.topo h1{margin:0;font-size:26px;font-weight:800;color:#fff;text-align:center}
 
 /* Painéis de botões dentro de cada elevador (cabine) */
 .paineis{width:82px;height:700px;display:flex;flex-direction:column}
-.painel{width:82px;height:350px;background:#444;border:3px solid #222;padding:4px}
+.painel{width:82px;height:350px;background:linear-gradient(135deg,#c8ccd0,#9aa0a6 40%,#c8ccd0 60%,#8a9096);border:3px solid #6b7076;padding:4px;box-shadow:inset 0 1px 3px rgba(255,255,255,.4)}
 .painel-botoes{height:326px;display:grid;grid-template-columns:33px 33px;grid-template-rows:52px repeat(5,45px);gap:3px;justify-content:center}
 .display{width:68px;height:48px;margin:auto;background:#55d52f;border:3px inset #222;color:#000;font:bold 25px monospace;display:grid;place-items:center;box-shadow:inset 0 0 8px #173b10}
 .painel-botoes .display{grid-column:1/3}
-.botao{width:33px;height:38px;border-radius:6px;border:3px solid #222;background:#777;box-shadow:inset 0 2px 4px #aaa;font-weight:bold;padding:0;font-size:14px}
-.ativo{border:4px solid #35d9ff;box-shadow:0 0 10px #35d9ff}
+.botao{width:33px;height:38px;border-radius:50%;border:2px solid #6b7076;
+  background:radial-gradient(circle at 35% 30%,#f5f6f7,#c9cdd1 45%,#9aa0a6 75%,#7d8388);
+  box-shadow:inset 0 1px 2px rgba(255,255,255,.8),inset 0 -2px 3px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.4);
+  font-weight:bold;padding:0;font-size:14px;color:#2a2d30;text-shadow:0 1px 0 rgba(255,255,255,.5)}
+.ativo{border:2px solid #35d9ff;box-shadow:0 0 10px #35d9ff,inset 0 1px 2px rgba(255,255,255,.8),inset 0 -2px 3px rgba(0,0,0,.35)}
 
 /* Poço onde as duas cabines se movem */
 #poco{position:relative;width:125px;height:700px;background:#555;border:5px solid #333;overflow:hidden}
@@ -43,20 +52,31 @@ h2{text-align:left;margin:8px 15px}
 
 /* Coluna de botões de chamada em cada pavimento */
 #pavimentos{width:125px;height:700px;display:flex;flex-direction:column}
-.pavimento{width:125px;height:70px;display:flex;align-items:center;justify-content:center;gap:10px;background:#444;border:3px solid #222;flex:none}
+.pavimento{width:125px;height:70px;display:flex;align-items:center;justify-content:center;gap:10px;background:linear-gradient(135deg,#c8ccd0,#9aa0a6 40%,#c8ccd0 60%,#8a9096);border:3px solid #6b7076;flex:none;box-shadow:inset 0 1px 3px rgba(255,255,255,.4)}
 .pavimento .display{width:48px;height:38px;font-size:20px}
 .pavimento .botao{width:34px;height:34px}
+
+/* Animação de toque: afunda enquanto o dedo está no botão, volta assim que solta */
+button{transition:transform .06s ease,filter .06s ease,background-color .06s ease}
+.botao:active{transform:scale(0.93);filter:brightness(0.8)}
 </style>
 
 <body>
-<h2>SUPERVISÓRIO DUPLEX</h2>
+
+<div class="topo"><h1>Supervisório Duplex</h1></div>
+
+<div id="telaElevadores">
 <div class="box">
-  <div class="paineis">
-    <div class="painel"><b>ELEVADOR 1</b><div id="painel1" class="painel-botoes"><div id="display1" class="display">T</div></div></div>
-    <div class="painel"><b>ELEVADOR 2</b><div id="painel2" class="painel-botoes"><div id="display2" class="display">T</div></div></div>
+  <div>
+    <b style="visibility:hidden">·</b>
+    <div class="paineis">
+      <div class="painel"><b>ELEVADOR 1</b><div id="painel1" class="painel-botoes"><div id="display1" class="display">T</div></div></div>
+      <div class="painel"><b>ELEVADOR 2</b><div id="painel2" class="painel-botoes"><div id="display2" class="display">T</div></div></div>
+    </div>
   </div>
   <div><b>POÇO DUPLEX</b><div id="poco"></div></div>
   <div><b>PAVIMENTOS</b><div id="pavimentos"></div></div>
+</div>
 </div>
 
 <script>
@@ -150,18 +170,17 @@ function chamarDeFora(andar, botao) {
   chamadasPendentes.add(andar);
   botao.classList.add("ativo");
 
-  // Se um elevador já está indo para esse andar, manda o OUTRO livre também ajudar
-  const jaIndo = elevadores.find(e => e.emMovimento && e.destinos.has(andar));
-  if (jaIndo) {
-    const outro = elevadores.find(e => e !== jaIndo && !e.emMovimento);
-    if (outro) { outro.destinos.add(andar); proximoDestino(outro); }
-    return;
-  }
-
   // Se algum elevador já está parado exatamente nesse andar, atende na hora
   const jaParado = elevadores.find(e => !e.emMovimento && e.andarAtual == andar);
   if (jaParado) return atenderChamadaImediata(jaParado, andar);
 
+  // Se algum elevador já está EM MOVIMENTO indo na mesma direção e ainda vai passar por esse andar,
+  // ele assume essa chamada também (varre todos os chamados da direção antes de inverter)
+  const emRota = elevadores.find(e => e.emMovimento &&
+    ((e.direcao > 0 && andar > e.andarAtual) || (e.direcao < 0 && andar < e.andarAtual)));
+  if (emRota) { emRota.destinos.add(andar); return; }
+
+  // Senão, despacha para o elevador livre mais próximo
   despacharElevadoresLivres();
 }
 
@@ -184,6 +203,7 @@ function proximoDestino(elevador) {
   if (!elevador.destinos.size) {
     elevador.emMovimento = elevador.direcao = 0;
     despacharElevadoresLivres();
+    agendarRetornoAoTerreo(elevador);
     return;
   }
   const acima = [...elevador.destinos].filter(a => a > elevador.andarAtual).sort((a, b) => a - b);
@@ -195,6 +215,19 @@ function proximoDestino(elevador) {
     acima.length ? acima[0] : abaixo[0];
 
   moverAte(elevador, destino);
+}
+
+/* Se o elevador ficar ocioso (sem destino e sem nenhuma chamada pendente em nenhum andar),
+   depois de um tempo parado ele volta sozinho pro térreo */
+const TEMPO_ESPERA_RETORNO_TERREO = 6000; // 6 segundos parado antes de descer sozinho
+function agendarRetornoAoTerreo(elevador) {
+  setTimeout(() => {
+    const aindaOcioso = !elevador.emMovimento && !elevador.destinos.size && !chamadasPendentes.size;
+    if (aindaOcioso && elevador.andarAtual !== 0) {
+      elevador.destinos.add(0);
+      proximoDestino(elevador);
+    }
+  }, TEMPO_ESPERA_RETORNO_TERREO);
 }
 
 /* Move a cabine, andar de posição em posição, até chegar ao andar de destino */
@@ -268,7 +301,12 @@ function abrirPortas(elevador) {
     setTimeout(() => {
       elevador.elemento.classList.remove("parada");
       elevador.areaPessoas.innerHTML = "";
-      elevador.destinos.size ? proximoDestino(elevador) : (elevador.emMovimento = elevador.direcao = 0);
+      if (elevador.destinos.size) {
+        proximoDestino(elevador);
+      } else {
+        elevador.emMovimento = elevador.direcao = 0;
+        agendarRetornoAoTerreo(elevador);
+      }
       despacharElevadoresLivres();
     }, 800);
   }, 2000);
@@ -278,6 +316,43 @@ function abrirPortas(elevador) {
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => navigator.serviceWorker.register("sw.js"));
 }
+
+/* Som curto de toque em qualquer botão (gerado na hora, sem precisar de arquivo de áudio) */
+let contextoAudio = null;
+function tocarSomDeToque() {
+  try {
+    contextoAudio = contextoAudio || new (window.AudioContext || window.webkitAudioContext)();
+    const osc = contextoAudio.createOscillator();
+    const ganho = contextoAudio.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = 850;
+    ganho.gain.setValueAtTime(0.15, contextoAudio.currentTime);
+    ganho.gain.exponentialRampToValueAtTime(0.001, contextoAudio.currentTime + 0.1);
+    osc.connect(ganho);
+    ganho.connect(contextoAudio.destination);
+    osc.start();
+    osc.stop(contextoAudio.currentTime + 0.1);
+  } catch (e) { /* navegador sem suporte a áudio: ignora silenciosamente */ }
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('button')) tocarSomDeToque();
+});
+
+/* Ajusta automaticamente o tamanho do painel de elevadores para caber
+   inteiro na tela do celular, sem precisar rolar */
+function ajustarEscalaElevadores() {
+  const container = document.getElementById('telaElevadores');
+  const conteudo = container.querySelector('.box');
+  conteudo.style.transform = 'scale(1)'; // reseta antes de medir
+  const alturaDisponivel = container.clientHeight;
+  const larguraDisponivel = container.clientWidth;
+  const alturaConteudo = conteudo.scrollHeight;
+  const larguraConteudo = conteudo.scrollWidth;
+  const escala = Math.min(alturaDisponivel / alturaConteudo, larguraDisponivel / larguraConteudo, 1);
+  conteudo.style.transform = 'scale(' + escala + ')';
+}
+window.addEventListener('load', ajustarEscalaElevadores);
+window.addEventListener('resize', ajustarEscalaElevadores);
 </script>
 </body>
 </html>

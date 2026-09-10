@@ -171,6 +171,13 @@ function chamarDeDentro(elevador, andar, botao) {
   if (!elevador.emMovimento) proximoDestino(elevador);
 }
 
+/* Posição atual do elevador em "andares", considerando o deslocamento
+   em tempo real quando ele está em movimento (não apenas o último
+   andar registrado, que só é atualizado na chegada) */
+function posicaoAtualEmAndares(elevador) {
+  return elevador.emMovimento ? elevador.posicaoPx / ALTURA_ANDAR : elevador.andarAtual;
+}
+
 /* Alguém aperta o botão de chamada NO ANDAR (fora da cabine) */
 function chamarDeFora(andar, botao) {
   if (chamadasPendentes.has(andar)) return; // já tem chamada nesse andar
@@ -182,10 +189,11 @@ function chamarDeFora(andar, botao) {
   const jaParado = elevadores.find(e => !e.emMovimento && e.andarAtual == andar);
   if (jaParado) return atenderChamadaImediata(jaParado, andar);
 
-  // Se algum elevador já está EM MOVIMENTO indo na mesma direção e ainda vai passar por esse andar,
+  // Se algum elevador já está EM MOVIMENTO indo na mesma direção e AINDA NÃO passou
+  // por esse andar (usando a posição real, não o último andar registrado),
   // ele assume essa chamada também (varre todos os chamados da direção antes de inverter)
   const emRota = elevadores.find(e => e.emMovimento &&
-    ((e.direcao > 0 && andar > e.andarAtual) || (e.direcao < 0 && andar < e.andarAtual)));
+    ((e.direcao > 0 && andar > posicaoAtualEmAndares(e)) || (e.direcao < 0 && andar < posicaoAtualEmAndares(e))));
   if (emRota) { emRota.destinos.add(andar); return; }
 
   // Senão, despacha para o elevador livre mais próximo
@@ -356,6 +364,19 @@ function falarAndar(rotulo) {
   speechSynthesis.cancel(); // evita fala acumulada se chegar rápido
   speechSynthesis.speak(fala);
 }
+
+/* "Aquece" o mecanismo de fala assim que o app abre (ou no primeiro toque),
+   carregando a engine de voz antes de qualquer elevador chegar - assim
+   a primeira fala real sai na hora, sem atraso */
+function prepararVozAntecipadamente() {
+  if (!("speechSynthesis" in window)) return;
+  speechSynthesis.getVoices();
+  const aquecimento = new SpeechSynthesisUtterance(' ');
+  aquecimento.volume = 0;
+  speechSynthesis.speak(aquecimento);
+}
+window.addEventListener('load', prepararVozAntecipadamente);
+document.addEventListener('click', prepararVozAntecipadamente, { once: true });
 
 /* Ajusta automaticamente o tamanho do painel de elevadores para caber
    inteiro na tela do celular, sem precisar rolar */

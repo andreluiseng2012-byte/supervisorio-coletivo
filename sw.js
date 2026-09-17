@@ -1,9 +1,12 @@
-const CACHE_NAME = "supervisorio-duplex-v1";
+const CACHE_NAME = "supervisorio-duplex-v2";
 const ARQUIVOS = [
   "./index.html",
   "./manifest.json",
   "./icon-192.png",
-  "./icon-512.png"
+  "./icon-512.png",
+  "./icon-maskable-512.png",
+  "./apple-touch-icon.png",
+  "./favicon.ico"
 ];
 
 self.addEventListener("install", (event) => {
